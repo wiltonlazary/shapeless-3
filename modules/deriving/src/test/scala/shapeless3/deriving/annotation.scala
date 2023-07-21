@@ -16,11 +16,11 @@
 
 package shapeless3.deriving
 
-import scala.annotation.{ Annotation => saAnnotation }
+import scala.annotation.Annotation as saAnnotation
 import org.junit.Test
 import shapeless3.test.illTyped
 
-object AnnotationTestsDefinitions {
+object AnnotationTests:
 
   case class First() extends saAnnotation
   case class Second(i: Int, s: String) extends saAnnotation
@@ -32,9 +32,9 @@ object AnnotationTestsDefinitions {
   case class Unused() extends saAnnotation
 
   @Other case class CC(
-    @First i: Int,
-    s: String,
-    @Second(2, "b") ob: Option[Boolean]
+      @First i: Int,
+      s: String,
+      @Second(2, "b") ob: Option[Boolean]
   )
 
   @Last(true) trait Something
@@ -53,21 +53,21 @@ object AnnotationTestsDefinitions {
   trait Dummy
 
   case class CC2(
-    i: Int @First,
-    s: String,
-    ob: Option[Boolean] @Second(2, "b")
+      i: Int @First,
+      s: String,
+      ob: Option[Boolean] @Second(2, "b")
   )
 
   case class CC3(
-    @First i: Int,
-    s: String,
-    @Second(2, "b") @Third('c') ob: Option[Boolean]
+      @First i: Int,
+      s: String,
+      @Second(2, "b") @Third('c') ob: Option[Boolean]
   )
 
   case class CC4(
-    i: Int @First,
-    s: String,
-    ob: Option[Boolean] @Second(2, "b") @Third('c')
+      i: Int @First,
+      s: String,
+      ob: Option[Boolean] @Second(2, "b") @Third('c')
   )
 
   type PosInt = Int @First
@@ -77,172 +77,127 @@ object AnnotationTestsDefinitions {
   @Other @Last(false) enum Control:
     @First @Third('!') case Automatic
     @Second(100, "@") case Manual(age: PosInt, email: Email)
-}
 
-class AnnotationTests {
-  import AnnotationTestsDefinitions._
-
-  @Test
-  def simpleAnnotation: Unit = {
-    {
-      val other = Annotation[Other, CC].apply()
-      assert(other == Other())
-
-      val last = Annotation[Last, Something].apply()
-      assert(last == Last(true))
-    }
-
-    {
-      val other: Other = Annotation[Other, CC].apply()
-      assert(other == Other())
-
-      val last: Last = Annotation[Last, Something].apply()
-      assert(last == Last(true))
-    }
-
-    {
-      val other = Annotation[Other, Control].apply()
-      assert(other == Other())
-
-      val first = Annotation[First, Control.Automatic.type].apply()
-      assert(first == First())
-
-      val second = Annotation[Second, Control.Manual].apply()
-      assert(second == Second(100, "@"))
-
-      val third = Annotation[Third, Control.Automatic.type].apply()
-      assert(third == Third('!'))
-    }
-  }
+class AnnotationTests:
+  import AnnotationTests.*
 
   @Test
-  def invalidAnnotation: Unit = {
+  def simpleAnnotation(): Unit =
+    val otherCC = Annotation[Other, CC].apply()
+    assert(otherCC == Other())
+
+    val lastCC = Annotation[Last, Something].apply()
+    assert(lastCC == Last(true))
+
+    val otherEnum = Annotation[Other, Control].apply()
+    assert(otherEnum == Other())
+
+    val firstEnum = Annotation[First, Control.Automatic.type].apply()
+    assert(firstEnum == First())
+
+    val secondEnum = Annotation[Second, Control.Manual].apply()
+    assert(secondEnum == Second(100, "@"))
+
+    val thirdEnum = Annotation[Third, Control.Automatic.type].apply()
+    assert(thirdEnum == Third('!'))
+
+  @Test
+  def invalidAnnotation(): Unit =
     illTyped("Annotation[Other, Abstract1]", ".*no implicit argument.*")
     illTyped("Annotation[Abstract1, CC]", ".*no implicit argument.*")
     illTyped("Annotation[Abstract2, CC]", ".*no implicit argument.*")
     illTyped("Annotation[Unused, Control]", ".*no implicit argument.*")
-  }
 
   @Test
-  def simpleAnnotations: Unit = {
-    {
-      val first: (Some[First], None.type, None.type) = Annotations[First, CC].apply()
-      assert(first == (Some(First()), None, None))
+  def simpleAnnotations(): Unit =
+    val first = Annotations[First, CC].apply()
+    summon[first.type <:< (Some[First], None.type, None.type)]
+    assert(first == (Some(First()), None, None))
 
-      val second: (None.type, None.type, Some[Second]) = Annotations[Second, CC].apply()
-      assert(second == (None, None, Some(Second(2, "b"))))
+    val second = Annotations[Second, CC].apply()
+    summon[second.type <:< (None.type, None.type, Some[Second])]
+    assert(second == (None, None, Some(Second(2, "b"))))
 
-      val unused: (None.type, None.type, None.type) = Annotations[Unused, CC].apply()
-      assert(unused == (None, None, None))
+    val unused = Annotations[Unused, CC].apply()
+    summon[unused.type <:< (None.type, None.type, None.type)]
+    assert(unused == (None, None, None))
 
-      val firstSum: (Some[First], None.type) = Annotations[First, Base].apply()
-      assert(firstSum == (Some(First()), None))
+    val firstSum = Annotations[First, Base].apply()
+    summon[firstSum.type <:< (Some[First], None.type)]
+    assert(firstSum == (Some(First()), None))
 
-      val secondSum: (None.type, Some[Second]) = Annotations[Second, Base].apply()
-      assert(secondSum == (None, Some(Second(3, "e"))))
-    }
+    val secondSum = Annotations[Second, Base].apply()
+    summon[secondSum.type <:< (None.type, Some[Second])]
+    assert(secondSum == (None, Some(Second(3, "e"))))
 
-    {
-      val first = Annotations[First, CC].apply()
-      assert(first == (Some(First()), None, None))
+    val firstEnum = Annotations[First, Control].apply()
+    summon[firstEnum.type <:< (Some[First], None.type)]
+    assert(firstEnum == (Some(First()), None))
 
-      val second = Annotations[Second, CC].apply()
-      assert(second == (None, None, Some(Second(2, "b"))))
-
-      val unused = Annotations[Unused, CC].apply()
-      assert(unused == (None, None, None))
-
-      val firstSum = Annotations[First, Base].apply()
-      assert(firstSum == (Some(First()), None))
-
-      val secondSum = Annotations[Second, Base].apply()
-      assert(secondSum == (None, Some(Second(3, "e"))))
-    }
-  }
+    val secondEnum = Annotations[Second, Control].apply()
+    summon[secondEnum.type <:< (None.type, Some[Second])]
+    assert(secondEnum == (None, Some(Second(100, "@"))))
 
   @Test
-  def invalidAnnotations: Unit = {
+  def invalidAnnotations(): Unit =
     illTyped("Annotations[Abstract1, CC]", ".*no implicit argument.*")
     illTyped("Annotations[Abstract1, Base]", ".*no implicit argument.*")
     illTyped("Annotations[Abstract2, CC]", ".*no implicit argument.*")
     illTyped("Annotations[Abstract2, Base]", ".*no implicit argument.*")
     illTyped("Annotations[Second, Abstract1]", ".*no implicit argument.*")
-  }
 
   @Test
-  def typeAnnotations: Unit = {
-    {
-      val first: (Some[First], None.type, None.type) = TypeAnnotations[First, CC4].apply()
-      assert(first == (Some(First()), None, None))
+  def typeAnnotations(): Unit =
+    val first = TypeAnnotations[First, CC4].apply()
+    summon[first.type <:< (Some[First], None.type, None.type)]
+    assert(first == (Some(First()), None, None))
 
-      val second: (None.type, None.type, Some[Second]) = TypeAnnotations[Second, CC2].apply()
-      assert(second == (None, None, Some(Second(2, "b"))))
+    val second = TypeAnnotations[Second, CC2].apply()
+    summon[second.type <:< (None.type, None.type, Some[Second])]
+    assert(second == (None, None, Some(Second(2, "b"))))
 
-      val unused: (None.type, None.type, None.type) = TypeAnnotations[Unused, CC2].apply()
-      assert(unused == (None, None, None))
+    val unused = TypeAnnotations[Unused, CC2].apply()
+    summon[unused.type <:< (None.type, None.type, None.type)]
+    assert(unused == (None, None, None))
 
-      val firstSum: (Some[First], None.type) = TypeAnnotations[First, Base2].apply()
-      assert(firstSum == (Some(First()), None))
+    val firstSum = TypeAnnotations[First, Base2].apply()
+    summon[firstSum.type <:< (Some[First], None.type)]
+    assert(firstSum == (Some(First()), None))
 
-      val secondSum: (None.type, Some[Second]) = TypeAnnotations[Second, Base2].apply()
-      assert(secondSum == (None, Some(Second(3, "e"))))
-    }
-
-    {
-      val first = TypeAnnotations[First, CC2].apply()
-      assert(first == (Some(First()), None, None))
-
-      val second = TypeAnnotations[Second, CC2].apply()
-      assert(second == (None, None, Some(Second(2, "b"))))
-
-      val unused = TypeAnnotations[Unused, CC2].apply()
-      assert(unused == (None, None, None))
-
-      val firstSum = TypeAnnotations[First, Base2].apply()
-      assert(firstSum == (Some(First()), None))
-
-      val secondSum = TypeAnnotations[Second, Base2].apply()
-      assert(secondSum == (None, Some(Second(3, "e"))))
-    }
-  }
+    val secondSum = TypeAnnotations[Second, Base2].apply()
+    summon[secondSum.type <:< (None.type, Some[Second])]
+    assert(secondSum == (None, Some(Second(3, "e"))))
 
   @Test
-  def invalidTypeAnnotations: Unit = {
+  def invalidTypeAnnotations(): Unit =
     illTyped("TypeAnnotations[Dummy, CC2]", "could not find implicit value for parameter annotations: .*")
     illTyped("TypeAnnotations[Dummy, Base]", "could not find implicit value for parameter annotations: .*")
     illTyped("TypeAnnotations[Second, Dummy]", "could not find implicit value for parameter annotations: .*")
-  }
 
   @Test
-  def allAnnotations: Unit = {
-    type T1First = First *: EmptyTuple
-    val first: T1First = First() *: EmptyTuple
+  def allAnnotations(): Unit =
+    val cc = AllAnnotations[CC3].apply() // case class
+    summon[cc.type <:< (First *: EmptyTuple, EmptyTuple, (Second, Third))]
+    assert(cc == (Tuple(First()), Tuple(), (Second(2, "b"), Third('c'))))
 
-    val cc: (T1First, EmptyTuple, (Second, Third)) = AllAnnotations[CC3].apply()
-    assert(cc == (first, EmptyTuple, (Second(2, "b"), Third('c'))))
+    val st = AllAnnotations[Base].apply() // sealed trait
+    summon[st.type <:< (First *: EmptyTuple, Second *: EmptyTuple)]
+    assert(st == (Tuple(First()), Tuple(Second(3, "e"))))
 
-    type T1Second = Second *: EmptyTuple
-    val second: T1Second = Second(3, "e") *: EmptyTuple
-
-    val st: (T1First, T1Second) = AllAnnotations[Base].apply()
-    assert(st == (first, second))
-  }
+    val en = AllAnnotations[Control].apply() // enum
+    summon[en.type <:< ((First, Third), Second *: EmptyTuple)]
+    assert(en == ((First(), Third('!')), Tuple(Second(100, "@"))))
 
   @Test
-  def allTypeAnnotations: Unit = {
-    type T1First = First *: EmptyTuple
-    val first: T1First = First() *: EmptyTuple
+  def allTypeAnnotations(): Unit =
+    val st = AllTypeAnnotations[Base2].apply() // sealed trait
+    summon[st.type <:< (First *: EmptyTuple, (Second, Third))]
+    assert(st == (Tuple(First()), (Second(3, "e"), Third('c'))))
 
-    val st: (T1First, (Second, Third)) = AllTypeAnnotations[Base2].apply() // sealed trait
-    assert(st == (first, (Second(3, "e"), Third('c'))))
+    val cc = AllTypeAnnotations[CC4].apply() // case class
+    summon[cc.type <:< (First *: EmptyTuple, EmptyTuple, (Second, Third))]
+    assert(cc == (Tuple(First()), Tuple(), (Second(2, "b"), Third('c'))))
 
-    val cc: (T1First, EmptyTuple, (Second, Third)) = AllTypeAnnotations[CC4].apply() // case class
-    assert(cc == (first, EmptyTuple, (Second(2, "b"), Third('c'))))
-
-    type T1Third = Third *: EmptyTuple
-    val third: T1Third = Third('c') *: EmptyTuple
-
-    val user: (T1First, T1Third) = AllTypeAnnotations[User].apply() // type refs
-    assert(user == (first, third))
-  }
-}
+    val user = AllTypeAnnotations[User].apply() // type refs
+    summon[user.type <:< (First *: EmptyTuple, Third *: EmptyTuple)]
+    assert(user == (Tuple(First()), Tuple(Third('c'))))
